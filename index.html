@@ -140,7 +140,7 @@ h1 .yr{color:transparent;-webkit-text-stroke:2px var(--gold);background:none;}
  font-family:Spline Sans Mono;font-weight:600;font-size:11px;display:flex;align-items:center;justify-content:center}
 .pk .fl{font-size:16px;flex:0 0 auto}
 .pk .b{color:var(--gold);font-weight:600;flex:0 0 auto}
-.pk .o{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:30px;font-size:12.5px}
+.pk .o{color:var(--mut);white-space:normal;flex:1 1 auto;min-width:40px;font-size:12.5px;line-height:1.25}
 .pk .dt{margin-left:auto;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;padding-left:8px}
 .pk .dd{font-family:Spline Sans Mono;font-size:10.5px;color:var(--ink);font-weight:600;letter-spacing:.01em}
 .pk .tt{font-family:Spline Sans Mono;font-size:10px;color:var(--green2);font-weight:500}
@@ -736,8 +736,9 @@ h1 .yr{color:transparent;-webkit-text-stroke:2px var(--gold);background:none;}
 </div>
 <script>
 (function(){
-var URLS=["https://raw.githubusercontent.com/kingdoggydog/worldcup2026/main/data.json",
-          "https://kingdoggydog.github.io/worldcup2026/data.json"];
+var URLS=["https://raw.githubusercontent.com/ColdSoba2000/worldcup2026-sgt/main/data.json",
+          "data.json",
+          "https://raw.githubusercontent.com/kingdoggydog/worldcup2026/main/data.json"];
 var NM={"Turkey":"Türkiye","Turkiye":"Türkiye","Czech Republic":"Czechia","Korea Republic":"South Korea",
 "Cabo Verde":"Cape Verde","Cape Verde Islands":"Cape Verde","Côte d'Ivoire":"Ivory Coast","Cote d'Ivoire":"Ivory Coast",
 "Bosnia and Herzegovina":"Bosnia & Herzegovina","Bosnia-Herzegovina":"Bosnia & Herzegovina","Bosnia":"Bosnia & Herzegovina",
@@ -789,9 +790,14 @@ function setRow(el,s1h,s2h,st,homeName){
   }
 }
 
+function tryFetch(i){
+  return fetch(URLS[i]+"?t="+Date.now()).then(function(r){
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).catch(function(e){ if(i+1<URLS.length) return tryFetch(i+1); throw e; });
+}
 function refresh(){
-  fetch(URLS[0]+"?t="+Date.now()).catch(function(){return fetch(URLS[1]+"?t="+Date.now());})
-  .then(function(r){return r.json();})
+  tryFetch(0)
   .then(function(d){
     var w20=0,l20=0,w10=0,l10=0;
     (d.matches||[]).forEach(function(m){
