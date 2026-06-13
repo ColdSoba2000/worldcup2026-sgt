@@ -21,16 +21,23 @@ jobs:
 
       - name: Fetch World Cup matches from football-data.org
         env:
-          TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+          RAW_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
         run: |
+          TOKEN=$(printf '%s' "$RAW_TOKEN" | tr -d '[:space:]')
           if [ -z "$TOKEN" ]; then
             echo "::error::FOOTBALL_DATA_TOKEN secret is not set."
             exit 1
           fi
-          curl -s "https://api.football-data.org/v4/competitions/WC/matches?season=2026" \
+          CODE=$(curl -s -w "%{http_code}" \
+            "https://api.football-data.org/v4/competitions/WC/matches" \
             -H "X-Auth-Token: $TOKEN" \
-            -o data.json \
-            --fail --max-time 25 --retry 2 --retry-delay 5
+            -o data.json --max-time 25 --retry 2 --retry-delay 5)
+          echo "HTTP status: $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error::API returned $CODE. Response body below:"
+            cat data.json
+            exit 1
+          fi
           COUNT=$(python3 -c "import json; print(len(json.load(open('data.json'))['matches']))")
           echo "Fetched $COUNT matches"
           if [ "$COUNT" -lt 1 ]; then
