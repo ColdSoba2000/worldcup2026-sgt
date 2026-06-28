@@ -632,7 +632,9 @@ function setScore(mid,h,a,live,fin){
     mid.appendChild(sm);
   }
 }
-function populateKO(d){
+function phSide(side){ return side.querySelector(".tn").classList.contains("ph"); }
+function populateKO(d, gapsOnly){
+  // gapsOnly: only fill slots/scores the primary feed left blank (used for the fallback pass)
   var byStage={};
   (d.matches||[]).forEach(function(m){ (byStage[m.stage]=byStage[m.stage]||[]).push(m); });
   document.querySelectorAll(".kround").forEach(function(kr){
@@ -643,10 +645,10 @@ function populateKO(d){
       var m=ms[i]; if(!m) return;
       var sides=row.querySelectorAll(".side");
       var h=m.homeTeam&&m.homeTeam.name, a=m.awayTeam&&m.awayTeam.name;
-      if(h&&sides[0]) setSide(sides[0],cn(h));
-      if(a&&sides[1]) setSide(sides[1],cn(a));
+      if(h&&sides[0]&&(!gapsOnly||phSide(sides[0]))) setSide(sides[0],cn(h));
+      if(a&&sides[1]&&(!gapsOnly||phSide(sides[1]))) setSide(sides[1],cn(a));
       var ft=(m.score&&m.score.fullTime)||{}, mid=row.querySelector(".x");
-      if(ft.home!=null&&mid)
+      if(ft.home!=null&&mid&&(!gapsOnly||!mid.classList.contains("sc")))
         setScore(mid,ft.home,ft.away,(m.status==="IN_PLAY"||m.status==="PAUSED"||m.status==="LIVE"),m.status==="FINISHED");
     });
   });
@@ -680,6 +682,8 @@ function refresh(){
       });
     });
     populateKO(d);
+    // football-data's free tier lags the knockout bracket; fill any blank slot from the fallback feed
+    fetch(URLS[2]+"?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(fb){ if(fb) populateKO(fb,true); }).catch(function(){});
     var t20=document.getElementById("tk20"), t10=document.getElementById("tk10");
     if(t20) t20.innerHTML='20-leg: <b class="tw">'+w20+'\u2713</b> <b class="tl">'+l20+'\u2717</b> <b class="tp">'+(20-w20-l20)+' left</b>';
     if(t10) t10.innerHTML='10-leg: <b class="tw">'+w10+'\u2713</b> <b class="tl">'+l10+'\u2717</b> <b class="tp">'+(10-w10-l10)+' left</b>';
