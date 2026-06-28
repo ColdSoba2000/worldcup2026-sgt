@@ -609,6 +609,49 @@ function setRow(el,s1h,s2h,st,homeName){
   }
 }
 
+// Fill the static knockout bracket from the feed (teams + scores) as they're decided.
+// ponytail: page rows and feed are both ascending by kickoff time -> map by position per stage.
+var flagOf={};
+document.querySelectorAll(".day .side").forEach(function(s){
+  var fl=s.querySelector(".fl"), tn=s.querySelector(".tn");
+  if(fl&&tn&&!fl.classList.contains("ph")) flagOf[tn.textContent.trim()]=fl.textContent;
+});
+var KO_STAGE={"Round of 32":"LAST_32","Round of 16":"LAST_16","Quarter-final":"QUARTER_FINALS","Semi-final":"SEMI_FINALS","Third place":"THIRD_PLACE","Final":"FINAL"};
+function setSide(side,name){
+  var fl=side.querySelector(".fl"), tn=side.querySelector(".tn");
+  if(tn){ tn.classList.remove("ph"); tn.textContent=name; }
+  if(fl){ fl.classList.remove("ph"); fl.textContent=flagOf[name]||"○"; }
+}
+function setScore(mid,h,a,live,fin){
+  mid.className="x sc"+(live?" live":"");
+  mid.textContent=h+"–"+a;
+  if(live||fin){
+    var sm=document.createElement("small");
+    if(live) sm.className="lv";
+    sm.textContent=live?"LIVE":"FT";
+    mid.appendChild(sm);
+  }
+}
+function populateKO(d){
+  var byStage={};
+  (d.matches||[]).forEach(function(m){ (byStage[m.stage]=byStage[m.stage]||[]).push(m); });
+  document.querySelectorAll(".kround").forEach(function(kr){
+    var h3=kr.querySelector("h3"); if(!h3) return;
+    var stage=KO_STAGE[h3.textContent.trim()]; if(!stage) return;
+    var ms=(byStage[stage]||[]).slice().sort(function(a,b){return a.utcDate<b.utcDate?-1:1;});
+    kr.querySelectorAll(".row").forEach(function(row,i){
+      var m=ms[i]; if(!m) return;
+      var sides=row.querySelectorAll(".side");
+      var h=m.homeTeam&&m.homeTeam.name, a=m.awayTeam&&m.awayTeam.name;
+      if(h&&sides[0]) setSide(sides[0],cn(h));
+      if(a&&sides[1]) setSide(sides[1],cn(a));
+      var ft=(m.score&&m.score.fullTime)||{}, mid=row.querySelector(".x");
+      if(ft.home!=null&&mid)
+        setScore(mid,ft.home,ft.away,(m.status==="IN_PLAY"||m.status==="PAUSED"||m.status==="LIVE"),m.status==="FINISHED");
+    });
+  });
+}
+
 function tryFetch(i){
   return fetch(URLS[i]+"?t="+Date.now()).then(function(r){
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -636,6 +679,7 @@ function refresh(){
         else  {l20++; if(el.classList.contains("ten")) l10++;}
       });
     });
+    populateKO(d);
     var t20=document.getElementById("tk20"), t10=document.getElementById("tk10");
     if(t20) t20.innerHTML='20-leg: <b class="tw">'+w20+'\u2713</b> <b class="tl">'+l20+'\u2717</b> <b class="tp">'+(20-w20-l20)+' left</b>';
     if(t10) t10.innerHTML='10-leg: <b class="tw">'+w10+'\u2713</b> <b class="tl">'+l10+'\u2717</b> <b class="tp">'+(10-w10-l10)+' left</b>';
