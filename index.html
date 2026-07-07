@@ -191,17 +191,6 @@ h1 .yr{color:transparent;-webkit-text-stroke:2px var(--gold);background:none;}
 </div>
 
 
-<div class="slip"><h2>My Parlay &middot; Round of 32<small>5-leg combo &middot; SGD 30 @ 31.59 &middot; pays SGD 976.16</small></h2>
-<div class="track"><span class="tk">5-leg: <b class="tw"><span id="pw">0</span>✓</b> <b class="tl"><span id="pl">0</span>✗</b> <b class="tp"><span id="pleft">5</span> left</b></span><span class="tk upd" id="pstat">live · auto-updates</span></div>
-<div class="slipgrid">
-<div class="pk" data-bet="Canada"><span class="n">1</span><span class="ls pend">·</span><span class="fl">🇨🇦</span><span class="b">Canada</span><span class="o">v South Africa</span><span class="psc"></span><span class="dt"><span class="dd">Mon 29 Jun</span><span class="tt">3:00am</span></span></div>
-<div class="pk" data-bet="Japan"><span class="n">2</span><span class="ls pend">·</span><span class="fl">🇯🇵</span><span class="b">Japan</span><span class="o">v Brazil</span><span class="psc"></span><span class="dt"><span class="dd">Tue 30 Jun</span><span class="tt">1:00am</span></span></div>
-<div class="pk" data-bet="Germany"><span class="n">3</span><span class="ls pend">·</span><span class="fl">🇩🇪</span><span class="b">Germany</span><span class="o">v Paraguay</span><span class="psc"></span><span class="dt"><span class="dd">Tue 30 Jun</span><span class="tt">4:30am</span></span></div>
-<div class="pk" data-bet="Norway"><span class="n">4</span><span class="ls pend">·</span><span class="fl">🇳🇴</span><span class="b">Norway</span><span class="o">v Ivory Coast</span><span class="psc"></span><span class="dt"><span class="dd">Wed 1 Jul</span><span class="tt">1:00am</span></span></div>
-<div class="pk" data-bet="France"><span class="n">5</span><span class="ls pend">·</span><span class="fl">🇫🇷</span><span class="b">France</span><span class="o">v Sweden</span><span class="psc"></span><span class="dt"><span class="dd">Wed 1 Jul</span><span class="tt">5:00am</span></span></div>
-</div>
-<div class="slipnote">All 5 must win in regulation (a draw busts the leg). Tracks live with the scores; settled legs show ✓ / ✗.</div></div>
-
 <div class="legend">
  <div class="legrp"><span class="k">Groups</span><span class="lchip"><span class="chip sm" style="background:#E5484D">A</span></span><span class="lchip"><span class="chip sm" style="background:#F2A93B">B</span></span><span class="lchip"><span class="chip sm" style="background:#F5D547">C</span></span><span class="lchip"><span class="chip sm" style="background:#7DD957">D</span></span><span class="lchip"><span class="chip sm" style="background:#34C77B">E</span></span><span class="lchip"><span class="chip sm" style="background:#2BB3A3">F</span></span><span class="lchip"><span class="chip sm" style="background:#3AA0E3">G</span></span><span class="lchip"><span class="chip sm" style="background:#5B6CE5">H</span></span><span class="lchip"><span class="chip sm" style="background:#8A5CF6">I</span></span><span class="lchip"><span class="chip sm" style="background:#C45CE0">J</span></span><span class="lchip"><span class="chip sm" style="background:#EC5BA8">K</span></span><span class="lchip"><span class="chip sm" style="background:#E8845B">L</span></span></div>
  <div class="legrp dpkey"><span class="k">SG watch</span>
@@ -665,34 +654,6 @@ function populateKO(d, gapsOnly){
   });
 }
 
-// Track the user's 5-leg R32 combo (FT match-winner); one draw or loss busts it.
-function trackParlay(d){
-  var ms=(d.matches||[]).filter(function(m){return m.stage==="LAST_32";});
-  var w=0,l=0;
-  document.querySelectorAll(".slip .pk[data-bet]").forEach(function(pk){
-    if(pk.classList.contains("won")){ w++; return; }
-    if(pk.classList.contains("lost")){ l++; return; }
-    var bet=pk.dataset.bet;
-    var m=ms.find(function(x){return x.homeTeam.name&&(cn(x.homeTeam.name)===bet||cn(x.awayTeam.name)===bet);});
-    var ft=(m&&m.score&&m.score.fullTime)||{};
-    if(!m||ft.home==null) return;                       // not started -> pending
-    var homeIsBet=cn(m.homeTeam.name)===bet, mine=homeIsBet?ft.home:ft.away, opp=homeIsBet?ft.away:ft.home;
-    var ls=pk.querySelector(".ls"), sc=pk.querySelector(".psc");
-    var live=(m.status==="IN_PLAY"||m.status==="PAUSED"||m.status==="LIVE");
-    if(sc){ sc.textContent=mine+"–"+opp; sc.className="psc"+(live?" lv":""); }
-    if(m.status==="FINISHED"){
-      // ponytail: draw at FT = leg lost; uses fullTime (may include ET), so an ET-decided tie can differ from a regulation 1X2 grade
-      var won=mine>opp;
-      pk.classList.add(won?"won":"lost");
-      if(ls){ ls.className="ls "+(won?"w":"l"); ls.textContent=won?"✓":"✗"; }
-      won?w++:l++;
-    } else if(live&&ls){ ls.className="ls li"; ls.textContent="●"; }
-  });
-  var pw=document.getElementById("pw"),pl=document.getElementById("pl"),pf=document.getElementById("pleft"),st=document.getElementById("pstat");
-  if(pw)pw.textContent=w; if(pl)pl.textContent=l; if(pf)pf.textContent=5-w-l;
-  if(st)st.textContent = l>0 ? "✗ busted" : (w===5 ? "✅ won · SGD 976.16" : "live · "+w+"/5 won");
-}
-
 function tryFetch(i){
   return fetch(URLS[i]+"?t="+Date.now()).then(function(r){
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -721,9 +682,8 @@ function refresh(){
       });
     });
     populateKO(d);
-    trackParlay(d);
     // football-data's free tier lags the knockout bracket; fill any blank slot from the fallback feed
-    fetch(URLS[2]+"?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(fb){ if(fb){ populateKO(fb,true); trackParlay(fb); } }).catch(function(){});
+    fetch(URLS[2]+"?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(fb){ if(fb) populateKO(fb,true); }).catch(function(){});
     var t20=document.getElementById("tk20"), t10=document.getElementById("tk10");
     if(t20) t20.innerHTML='20-leg: <b class="tw">'+w20+'\u2713</b> <b class="tl">'+l20+'\u2717</b> <b class="tp">'+(20-w20-l20)+' left</b>';
     if(t10) t10.innerHTML='10-leg: <b class="tw">'+w10+'\u2713</b> <b class="tl">'+l10+'\u2717</b> <b class="tp">'+(10-w10-l10)+' left</b>';
@@ -741,11 +701,38 @@ if(btn) btn.addEventListener("click", function(){
 });
 refresh();
 setInterval(refresh, 60*1000);
-// hide whole match-days once they're in the past (Singapore time); re-checks hourly
+// Auto-clear matches from 2+ days ago (Singapore time); re-checks hourly.
+// Covers group-stage .day blocks (already dated) and knockout .kround rows
+// (dated via their .kdate marker, e.g. "Mon 29 Jun" -> 2026-06-29).
+function isoMinusDays(iso,days){
+  var p=iso.split("-").map(Number), d=new Date(Date.UTC(p[0],p[1]-1,p[2]));
+  d.setUTCDate(d.getUTCDate()-days);
+  return d.toISOString().slice(0,10);
+}
+var KO_MON={Jun:"06",Jul:"07",Aug:"08"};
+function isoFromKdate(text){
+  var m=text.match(/(\d{1,2})\s+(\w{3})/);
+  return (m&&KO_MON[m[2]]) ? "2026-"+KO_MON[m[2]]+"-"+("0"+m[1]).slice(-2) : null;
+}
 function hidePastDays(){
   var today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Singapore"});
+  var cutoff=isoMinusDays(today,1); // hide anything strictly before "yesterday" = 2+ days ago
   document.querySelectorAll(".day[data-date]").forEach(function(d){
-    d.style.display=(d.getAttribute("data-date")<today)?"none":"";
+    d.style.display=(d.getAttribute("data-date")<cutoff)?"none":"";
+  });
+  document.querySelectorAll(".kround").forEach(function(kr){
+    var curDate=null, dateEl=null, anyVisible=false;
+    [].slice.call(kr.children).forEach(function(c){
+      if(c.classList.contains("kdate")){
+        if(dateEl) dateEl.style.display=anyVisible?"":"none";
+        dateEl=c; curDate=isoFromKdate(c.textContent); anyVisible=false;
+      } else if(c.classList.contains("row")){
+        var hide=curDate&&curDate<cutoff;
+        c.style.display=hide?"none":"";
+        if(!hide) anyVisible=true;
+      }
+    });
+    if(dateEl) dateEl.style.display=anyVisible?"":"none";
   });
 }
 hidePastDays();
