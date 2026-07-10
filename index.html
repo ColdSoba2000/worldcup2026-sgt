@@ -654,6 +654,52 @@ function populateKO(d, gapsOnly){
   });
 }
 
+// QF onward: never hide a match, just sink finished ones to the bottom of their round.
+// Snapshot each round's original {date,row} order once (before any reordering) so every
+// call can rebuild deterministically from truth, rather than reasoning about prior moves.
+var KO_LATE={"Quarter-final":1,"Semi-final":1,"Third place":1,"Final":1};
+var koSnapshot=[];
+document.querySelectorAll(".kround").forEach(function(kr){
+  var h3=kr.querySelector("h3"); if(!h3||!KO_LATE[h3.textContent.trim()]) return;
+  var curDate=null, list=[];
+  [].slice.call(kr.children).forEach(function(c){
+    if(c.classList.contains("kdate")) curDate=c.textContent.trim();
+    else if(c.classList.contains("row")) list.push({date:curDate,row:c});
+  });
+  koSnapshot.push({kround:kr,list:list});
+});
+function isFinishedRow(row){
+  var sm=row.querySelector(".x.sc small");
+  return !!sm&&sm.textContent==="FT";
+}
+function reorderKO(){
+  koSnapshot.forEach(function(entry){
+    var kr=entry.kround, notDone=[], done=[];
+    entry.list.forEach(function(item){ (isFinishedRow(item.row)?done:notDone).push(item); });
+    [].slice.call(kr.querySelectorAll(".kdate, .row")).forEach(function(el){ el.remove(); });
+    var lastDate=null;
+    notDone.forEach(function(item){
+      if(item.date!==lastDate){
+        var kd=document.createElement("div"); kd.className="kdate"; kd.textContent=item.date;
+        kr.appendChild(kd); lastDate=item.date;
+      }
+      kr.appendChild(item.row);
+    });
+    if(done.length){
+      var hdr=document.createElement("div"); hdr.className="kdate"; hdr.textContent="Completed";
+      kr.appendChild(hdr);
+      done.forEach(function(item){
+        if(!item.row.dataset.kdTagged){
+          var ven=item.row.querySelector(".venue");
+          if(ven){ var tag=document.createElement("span"); tag.className="lt"; tag.textContent=item.date; ven.insertBefore(tag,ven.firstChild); }
+          item.row.dataset.kdTagged="1";
+        }
+        kr.appendChild(item.row);
+      });
+    }
+  });
+}
+
 function tryFetch(i){
   return fetch(URLS[i]+"?t="+Date.now()).then(function(r){
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -682,8 +728,9 @@ function refresh(){
       });
     });
     populateKO(d);
+    reorderKO();
     // football-data's free tier lags the knockout bracket; fill any blank slot from the fallback feed
-    fetch(URLS[2]+"?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(fb){ if(fb) populateKO(fb,true); }).catch(function(){});
+    fetch(URLS[2]+"?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(fb){ if(fb){ populateKO(fb,true); reorderKO(); } }).catch(function(){});
     var t20=document.getElementById("tk20"), t10=document.getElementById("tk10");
     if(t20) t20.innerHTML='20-leg: <b class="tw">'+w20+'\u2713</b> <b class="tl">'+l20+'\u2717</b> <b class="tp">'+(20-w20-l20)+' left</b>';
     if(t10) t10.innerHTML='10-leg: <b class="tw">'+w10+'\u2713</b> <b class="tl">'+l10+'\u2717</b> <b class="tp">'+(10-w10-l10)+' left</b>';
@@ -721,6 +768,7 @@ function hidePastDays(){
     d.style.display=(d.getAttribute("data-date")<cutoff)?"none":"";
   });
   document.querySelectorAll(".kround").forEach(function(kr){
+    var h3=kr.querySelector("h3"); if(h3&&KO_LATE[h3.textContent.trim()]) return; // QF onward: reorderKO() handles these, never hide
     var curDate=null, dateEl=null, anyVisible=false;
     [].slice.call(kr.children).forEach(function(c){
       if(c.classList.contains("kdate")){
