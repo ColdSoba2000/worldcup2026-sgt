@@ -648,7 +648,8 @@ function populateKO(d, gapsOnly){
       if(h&&sides[0]&&(!gapsOnly||phSide(sides[0]))) setSide(sides[0],cn(h));
       if(a&&sides[1]&&(!gapsOnly||phSide(sides[1]))) setSide(sides[1],cn(a));
       var ft=(m.score&&m.score.fullTime)||{}, mid=row.querySelector(".x");
-      if(ft.home!=null&&mid&&(!gapsOnly||!mid.classList.contains("sc")))
+      var started=m.utcDate&&new Date(m.utcDate)<=new Date(); // ponytail: guards against a feed reporting FT/live before kickoff
+      if(ft.home!=null&&mid&&started&&(!gapsOnly||!mid.classList.contains("sc")))
         setScore(mid,ft.home,ft.away,(m.status==="IN_PLAY"||m.status==="PAUSED"||m.status==="LIVE"),m.status==="FINISHED");
     });
   });
