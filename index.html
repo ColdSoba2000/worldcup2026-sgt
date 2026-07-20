@@ -747,9 +747,11 @@ if(btn) btn.addEventListener("click", function(){
   refresh();
   setTimeout(function(){ btn.classList.remove("busy"); btn.textContent="\u21bb refresh"; }, 1200);
 });
+// Competition over: fetch/reorder/hide run once on load to render the final
+// state, but nothing repeats — the tournament is done, so no more automated
+// pulls or layout changes should happen while a tab sits open.
 refresh();
-setInterval(refresh, 60*1000);
-// Auto-clear matches from 2+ days ago (Singapore time); re-checks hourly.
+// Auto-clear matches from 2+ days ago (Singapore time); computed once on load.
 // Covers group-stage .day blocks (already dated) and knockout .kround rows
 // (dated via their .kdate marker, e.g. "Mon 29 Jun" -> 2026-06-29).
 function isoMinusDays(iso,days){
@@ -785,7 +787,6 @@ function hidePastDays(){
   });
 }
 hidePastDays();
-setInterval(hidePastDays,3600000);
 })();
 </script>
 </body></html>
